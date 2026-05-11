@@ -1204,8 +1204,10 @@ input[type=range].sl-input::-webkit-slider-thumb{appearance:none;width:14px;heig
   </div></div>
   <div class="hdr-r">
     <button class="btn" onclick="hExpD()">Exportar</button>
-    <button class="btn" onclick="document.getElementById('hImpF').click()">Importar</button>
+    <button class="btn" onclick="document.getElementById('hImpF').click()">Importar JSON</button>
     <input type="file" id="hImpF" accept=".json" style="display:none" onchange="hImpData(event)">
+    <button class="btn" onclick="document.getElementById('hImpXLS').click()" style="border-color:#2ecc71;color:#2ecc71">Importar Excel</button>
+    <input type="file" id="hImpXLS" accept=".xlsx,.xls" style="display:none" onchange="hImpExcel(event)">
     <button class="btn btn-ed" id="hetoggle" onclick="hToggleEdit()">Editar</button>
   </div>
 </div>
@@ -1348,6 +1350,7 @@ input[type=range].sl-input::-webkit-slider-thumb{appearance:none;width:14px;heig
   </table></div>
 </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 var hMONTHS=["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
 var hREF2025=[301.2,474,488,519,88.8,513.2,984.6,810.6,971.6,866.4,577.5,666];
@@ -1358,6 +1361,15 @@ var hDEF={
     {mes:"ENE",lt:719.8,tp:60,fai:941,fal:409,fap:34,fsi:240,fsl:72,fsp:7,nai:796,nal:238.8,nan:557.2,nap:19,aii:0,ail:0,ain:0,aip:0,netoAnna:1498.2,netoSisco:168,netoAina:0,totBruto:2386,notas:"Anna fisio 941 (34), Sisco 240 (7), Anna nutri 796 (19). Lambda 719.8."},
     {mes:"FEB",lt:1270.95,tp:46,fai:862.8,fal:376.95,fap:30,fsi:200,fsl:60,fsp:6,nai:1652,nal:708,nan:944,nap:8,aii:420,ail:126,ain:168,aip:2,netoAnna:2640.8,netoSisco:140,netoAina:168,totBruto:4345.75,notas:"Fuerte nutri (1652). Aina 2 pacientes. Lambda 1270.95."},
     {mes:"MAR",lt:1211.4,tp:86,fai:1049.4,fal:458.4,fap:null,fsi:560,fsl:168,fsp:null,nai:582.4,nal:300.6,nan:null,nap:null,aii:948,ail:284.4,ain:379.2,aip:null,netoAnna:1916.2,netoSisco:392,netoAina:379.2,totBruto:4183.2,notas:"86 pacientes. Sisco 560, Aina 948. Lambda 1211.4."},
+    {mes:"ABR",lt:591,tp:65,fai:1376,fal:0,fap:null,fsi:225,fsl:0,fsp:null,nai:380,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:1981,notas:""},
+    {mes:"MAY",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
+    {mes:"JUN",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
+    {mes:"JUL",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
+    {mes:"AGO",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
+    {mes:"SEP",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
+    {mes:"OCT",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
+    {mes:"NOV",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
+    {mes:"DIC",lt:0,tp:0,fai:0,fal:0,fap:null,fsi:0,fsl:0,fsp:null,nai:0,nal:0,nan:null,nap:null,aii:0,ail:0,ain:0,aip:null,netoAnna:0,netoSisco:0,netoAina:0,totBruto:0,notas:""},
   ],
   proyLambda:1067,proyCrec:5,_pLocked:false,
   tarifasFisio:[
@@ -1377,8 +1389,17 @@ var hDEF={
 };
 var hD=JSON.parse(JSON.stringify(hDEF)),hEM=false,hCEM=null;
 async function hLoad(){
-  try{const sbData=await sbLoadHealth();if(sbData){hD=sbData;hRender();return;}}catch(e){}
-  try{var s=localStorage.getItem("lmbh2_d");if(s)hD=JSON.parse(s);}catch(e){}
+  // Try localStorage first (most reliable from browser)
+  try{var s=localStorage.getItem("lmbh2_d");if(s){var parsed=JSON.parse(s);
+    // Validate: meses must be an array
+    if(parsed&&Array.isArray(parsed.meses)&&parsed.meses.length>0){hD=parsed;hRender();return;}
+  }}catch(e){}
+  // Try Supabase
+  try{const sbData=await sbLoadHealth();if(sbData&&Array.isArray(sbData.meses)&&sbData.meses.length>0){
+    hD=sbData;localStorage.setItem("lmbh2_d",JSON.stringify(hD));hRender();return;
+  }}catch(e){}
+  // Fall back to hDEF defaults (always works)
+  hD=JSON.parse(JSON.stringify(hDEF));
 }
 async function hPersist(){
   try{localStorage.setItem("lmbh2_d",JSON.stringify(hD));}catch(e){}
@@ -1691,7 +1712,99 @@ function hGoP(name,btn){
   setTimeout(hRender,40);
 }
 
+
+// ═══ HEALTH EXCEL IMPORTER ═══
+function hImpExcel(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      
+      const MONTH_MAP = {
+        'ENERO 2026':1,'FEBRERO 2026':2,'MARZO 2026':3,'ABRIL 2026':4,
+        'MAYO 2026':5,'JUNIO 2026':6,'JULIO 2026':7,'AGOSTO 2026':8,
+        'SEPTIEMBRE 2026':9,'OCTUBRE 2026':10,'NOVIEMBRE 2026':11,'DICIEMBRE 2026':12
+      };
+      const MES_NAMES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+      
+      let updated = 0;
+      
+      wb.SheetNames.forEach(sheetName => {
+        const mesNum = MONTH_MAP[sheetName.toUpperCase()] || 
+                       MONTH_MAP[sheetName];
+        if(!mesNum) return;
+        
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+        
+        // Find totals from the sheet
+        let netoLambda=0, ingAnna=0, ingSisco=0, ingAina=0, pacLambda=0, pacNoLambda=0;
+        let netoAnna=0, netoSisco=0, netoAina=0, totBruto=0;
+        
+        rows.forEach(row => {
+          if(!row) return;
+          row.forEach((cell, ci) => {
+            if(typeof cell !== 'string') return;
+            const v = cell.trim().toUpperCase();
+            const next = row[ci+1];
+            const nextNum = typeof next === 'number' ? next : null;
+            
+            if((v.includes('NETO LAMBDA') || v === 'TOTAL LAMBDA') && nextNum !== null) netoLambda = nextNum;
+            if(v.includes('INGRESOS TOTALES') && v.includes('ANNA') && nextNum !== null) ingAnna = nextNum;
+            if(v.includes('INGRESOS TOTALES') && v.includes('SISCO') && nextNum !== null) ingSisco = nextNum;
+            if(v.includes('INGRESOS TOTALES AINA') && nextNum !== null) ingAina = nextNum;
+            if(v.includes('INGRESOS TOTALES') && !v.includes('ANNA') && !v.includes('SISCO') && !v.includes('AINA') && nextNum !== null) totBruto = nextNum;
+            if(v === 'PACIENTES LAMBDA' && nextNum !== null) pacLambda = nextNum;
+            if(v === 'PACIENTES NO LAMBDA' && nextNum !== null) pacNoLambda = nextNum;
+            if(v.includes('NETO ANNA') && nextNum !== null) netoAnna = nextNum;
+            if(v.includes('NETO SISCO') && nextNum !== null) netoSisco = nextNum;
+            if(v.includes('NETO AINA') && nextNum !== null) netoAina = nextNum;
+          });
+        });
+        
+        // Update hD.meses
+        const mesName = MES_NAMES[mesNum-1];
+        const existing = hD.meses.find(m => m.mes === mesName);
+        if(existing){
+          if(netoLambda) existing.lt = netoLambda;
+          if(pacLambda) existing.tp = pacLambda + (pacNoLambda||0);
+          if(ingAnna) existing.fai = ingAnna;
+          if(ingSisco) existing.fsi = ingSisco;
+          if(ingAina) existing.nai = ingAina;
+          if(netoAnna) existing.netoAnna = netoAnna;
+          if(netoSisco) existing.netoSisco = netoSisco;
+          if(netoAina) existing.netoAina = netoAina;
+          if(totBruto) existing.totBruto = totBruto;
+          updated++;
+        }
+      });
+      
+      if(updated > 0){
+        hPersist();
+        hRender();
+        hToast();
+        alert('✓ Importado correctamente — ' + updated + ' mes' + (updated>1?'es':'') + ' actualizado' + (updated>1?'s':''));
+      } else {
+        alert('No se encontraron hojas con formato reconocido. Asegúrate de que las hojas se llaman "ENERO 2026", "FEBRERO 2026", etc.');
+      }
+    } catch(err){
+      alert('Error al leer el Excel: ' + err.message);
+      console.error(err);
+    }
+    // Reset input so same file can be re-imported
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 // Health Init
+// Clear corrupted data before loading
+(function(){try{var s=localStorage.getItem("lmbh2_d");if(s){var p=JSON.parse(s);
+  if(!p||!Array.isArray(p.meses)){localStorage.removeItem("lmbh2_d");console.log("Cleared corrupted health data");}
+}}catch(e){localStorage.removeItem("lmbh2_d");}})();
 hLoad().then(function(){try{hRender();}catch(e){console.error("hRender error:",e);}}).catch(function(){try{hRender();}catch(e){}});
 </script>
 </div><!-- /mod-health --><script>
