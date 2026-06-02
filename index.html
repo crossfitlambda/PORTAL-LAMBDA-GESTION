@@ -1055,6 +1055,9 @@ input[type=range].sl-input::-webkit-slider-thumb{appearance:none;width:14px;heig
           <input type="file" id="feedback-photo-input" accept="image/*" capture="environment" style="display:none" onchange="analizarFotoFeedback(event)">
           <div id="feedback-status" style="font-size:9px;margin-top:6px;min-height:14px;text-align:center"></div>
           <div style="font-size:8px;color:var(--w5);margin-top:5px;text-align:center">Claude lee la hoja y rellena el formulario y el diagrama automáticamente</div>
+          <div id="feedback-comparison" style="display:none;margin-top:8px"></div>
+          <div id="feedback-obj-hist" style="display:none;margin-top:8px;padding:8px;border:1px solid rgba(255,215,0,.2);border-radius:6px;background:rgba(255,215,0,.04)"></div>
+          <div id="feedback-analysis" style="display:none;margin-top:12px;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.02)"></div>
         </div>
         <div class="frow2"><div class="field"><label>Fecha</label><input type="date" id="c-fecha"></div><div class="field"><label>Nivel actual</label><select id="c-nivel"><option value="Bronze">Bronze</option><option value="Silver">Silver</option><option value="Gold">Gold</option><option value="Diamond">Diamond</option></select></div></div>
         <div class="field"><label>Notas</label><textarea id="c-notas" placeholder="Observaciones…"></textarea></div>
@@ -2437,7 +2440,7 @@ async function medSave(mod){
   const prefMap={coaches:'c',oncology:'o',adaptive:'a',halterofilia:'wl'};
   const pref=prefMap[mod]||mod[0];
   const nombre=el(pref+'-nombre')?.value.trim(),eval_=el(pref+'-eval')?.value.trim(),fecha=el(pref+'-fecha')?.value,notas=el(pref+'-notas')?.value.trim();
-  let extra={};if(mod==='coaches')extra.nivel=el('c-nivel')?.value;if(mod==='oncology')extra.semana=el('o-semana')?.value;if(mod==='adaptive')extra.mes=el('a-mes')?.value;if(mod==='halterofilia')extra.fase=el('wl-fase')?.value;
+  let extra={};if(mod==='coaches'){extra.nivel=el('c-nivel')?.value;const objEl=document.getElementById('feedback-obj-store');extra.objetivo_siguiente=objEl?objEl.value:'';};if(mod==='oncology')extra.semana=el('o-semana')?.value;if(mod==='adaptive')extra.mes=el('a-mes')?.value;if(mod==='halterofilia')extra.fase=el('wl-fase')?.value;
   const entry={id:Date.now(),nombre:nombre||'Sin nombre',eval:eval_||'',fecha:fecha||new Date().toISOString().slice(0,10),notas,vals:[...MED[mod].vals],...extra};
   // 1. Save to localStorage ALWAYS (primary)
   let hist=[];try{hist=JSON.parse(localStorage.getItem('lmb_med_'+mod)||'[]');}catch(e){}
@@ -2610,6 +2613,80 @@ Responde SOLO con JSON válido sin texto adicional:
     event.target.value = '';
   };
   reader.readAsDataURL(file);
+}
+
+
+// ═══ VOICE NOTE ═══
+let mediaRecorder=null,audioChunks=[];
+async function toggleVoiceNote(){
+  const btn=document.getElementById('voice-btn');
+  const statusEl=document.getElementById('feedback-status');
+  if(mediaRecorder&&mediaRecorder.state==='recording'){mediaRecorder.stop();btn.textContent='🎤 NOTA DE VOZ';btn.style.borderColor='rgba(255,255,255,.3)';btn.style.color='#fff';return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks=[];mediaRecorder=new MediaRecorder(stream);
+    mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+    mediaRecorder.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(audioChunks,{type:'audio/webm'});
+      const reader=new FileReader();
+      reader.onload=async function(e){
+        statusEl.textContent='Transcribiendo nota de voz...';statusEl.style.color='#FFD700';
+        try{
+          const apiKey=localStorage.getItem('lmb_api_key')||'';
+          if(!apiKey)throw new Error('Añade la API key primero');
+          const resp=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:'openrouter/auto',messages:[{role:'user',content:[{type:'text',text:'Transcribe este audio de feedback sobre un coach de CrossFit. Extrae los puntos clave. Responde en español.'},{type:'image_url',image_url:{url:e.target.result}}]}]})});
+          const data=await resp.json();
+          const transcript=data.choices?.[0]?.message?.content||'';
+          const notasEl=document.getElementById('c-notas');
+          if(notasEl)notasEl.value=(notasEl.value?notasEl.value+'\n\n':'')+' '+transcript;
+          statusEl.textContent='✓ Nota de voz añadida';statusEl.style.color='#2ecc71';
+          setTimeout(()=>statusEl.textContent='',3000);
+        }catch(err){statusEl.textContent='Error: '+err.message;statusEl.style.color='#e63946';}
+      };reader.readAsDataURL(blob);
+    };
+    mediaRecorder.start();btn.textContent='⏹ DETENER';btn.style.borderColor='#e63946';btn.style.color='#e63946';
+    statusEl.textContent='🔴 Grabando...';statusEl.style.color='#e63946';
+  }catch(err){statusEl.textContent='Error micrófono: '+err.message;statusEl.style.color='#e63946';}
+}
+
+// ═══ COACH PROFILE ═══
+function closeCoachProfile(){var m=document.getElementById("coach-profile-modal");if(m)m.remove();}
+function mostrarPerfilCoach(){
+  const nombre=document.getElementById('c-nombre')?.value.trim();
+  if(!nombre){alert('Escribe el nombre del coach primero');return;}
+  const hist=medHistCache['coaches']||[];
+  const suyas=hist.filter(e=>e.nombre&&e.nombre.toLowerCase()===nombre.toLowerCase());
+  if(suyas.length<2){alert('Necesitas al menos 2 evaluaciones guardadas para ver el perfil de evolución');return;}
+  const axes=MED_AXES['coaches'];
+  const chronological=[...suyas].reverse();
+  let html='<div id="coach-profile-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;overflow-y:auto;padding:20px">';
+  html+='<div style="max-width:800px;margin:0 auto">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">';
+  html+='<div><div style="font-family:var(--FC);font-size:20px;font-weight:900;color:#fff">PERFIL · '+nombre.toUpperCase()+'</div>';
+  html+='<div style="font-size:9px;color:var(--w4);text-transform:uppercase;letter-spacing:2px">'+suyas.length+' evaluaciones</div></div>';
+  html+='<button onclick="closeCoachProfile()" style="border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:11px">CERRAR</button></div>';
+  html+='<div style="background:#111;border-radius:8px;overflow:auto;margin-bottom:16px">';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:10px">';
+  html+='<thead><tr style="background:#1a1a1a"><th style="padding:8px;text-align:left;color:var(--w4)">EJE</th>';
+  chronological.forEach(e=>{html+='<th style="padding:8px;text-align:center;color:var(--w4)">'+e.fecha+'</th>';});
+  html+='<th style="padding:8px;text-align:center;color:#FFD700">MEDIA</th></tr></thead><tbody>';
+  axes.forEach((ax,i)=>{
+    const avg=Math.round(chronological.reduce((s,e)=>s+(e.vals[i]||0),0)/chronological.length*10)/10;
+    html+='<tr style="border-top:1px solid #222"><td style="padding:7px 8px;color:#ddd">'+ax+'</td>';
+    chronological.forEach(e=>{const v=e.vals[i]||0;const col=v>=8?'#2ecc71':v>=6?'#FFD700':v>=4?'#e67e22':'#e63946';html+='<td style="padding:7px 8px;text-align:center;color:'+col+';font-weight:700">'+v+'</td>';});
+    html+='<td style="padding:7px 8px;text-align:center;color:#FFD700;font-weight:700">'+avg+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  const withObj=suyas.filter(e=>e.objetivo_siguiente);
+  if(withObj.length){
+    html+='<div style="background:#111;border-radius:8px;padding:12px;margin-bottom:16px">';
+    html+='<div style="font-size:8px;color:#FFD700;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">🎯 Historial de objetivos</div>';
+    withObj.forEach(e=>{html+='<div style="margin-bottom:6px;padding:6px;border:1px solid rgba(255,215,0,.2);border-radius:5px"><div style="font-size:8px;color:var(--w4);margin-bottom:2px">'+e.fecha+'</div><div style="font-size:10px;color:#fff">'+e.objetivo_siguiente+'</div></div>';});
+    html+='</div>';
+  }
+  html+='</div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
 }
 
 
