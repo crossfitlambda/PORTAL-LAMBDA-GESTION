@@ -2567,42 +2567,74 @@ async function analizarFotoFeedback(event){
     const mediaType = file.type || 'image/jpeg';
     const isPDF = mediaType === 'application/pdf';
     try {
-      const prompt = `Eres un experto evaluador de coaches de CrossFit. Analiza esta hoja de feedback y extrae los datos con precisión.
+      const prompt = `Eres un evaluador experto de coaches de CrossFit Lambda. Conoces en profundidad el sistema de valores y metodología de Lambda:
 
-Los 10 ejes del diagrama araña son:
-1. PRESENCIA FÍSICA (actitud, energía, puntualidad, material listo, no usa móvil)
-2. CLARIDAD BRIEFING (duración, demo, información suficiente, preguntas & respuestas)
-3. CORRECCIONES (ver errores, corregir, lenguaje equilibrado, triaje movimiento)
-4. CONEXIÓN ATLETA (usa nombres, empatía, atención personalizada a atletas)
-5. GESTIÓN TIEMPO (timing, transiciones, clase termina a tiempo, logística)
-6. MOTIVACIÓN (energía positiva, camaradería, actitud, conecta con atletas)
-7. ADAPTACIÓN (escalado, lesiones, modula según nivel de atletas)
-8. CONOCIMIENTO TEC. (conocimiento del movimiento, demo técnica sólida)
-9. GESTIÓN EMOCIONAL (respeto, cooperación, ambiente grupo)
-10. FEEDBACK POST (puntos fuertes identificados, áreas mejora, objetivos próxima semana)
+VALORES LAMBDA (los más importantes en ROJO): Pasión, Energía, Humildad, Empatía, Profesionalismo. También: Integridad, Comunidad, Responsabilidad, Conocimiento, Motivación, Seguridad, Diversión, Adaptabilidad, Comunicación Efectiva, Ética de trabajo.
 
-Para cada eje busca: checkmarks (✓), puntuaciones 1-5 (multiplica x2), puntuaciones 1-10, o infiere por el contenido escrito.
-Si no hay dato claro usa 5 como neutro.
+SISTEMA C-C-C DE LAMBDA (los 3 objetivos de cada sesión):
+1. CONTENTO: El atleta debe salir más contento de como entró. El coach transmite seguridad y tiene un peso importante en su vida.
+2. CORREGIDO: El atleta debe sentir que el coach ha mejorado alguno de sus aspectos físicos (prioridad: técnica, movilidad, patrones de movimiento = SALUD y LONGEVIDAD).
+3. CANSADO: El atleta debe sentir que ha trabajado y sabe por qué lo ha hecho.
 
-Después de analizar las puntuaciones, identifica los 3 ejes con puntuación más baja y genera:
-- Para cada eje bajo: 2-3 acciones concretas y específicas que el coach puede hacer en la próxima sesión para mejorar
-- Un objetivo principal para el siguiente feedback
-- Los 3 puntos fuertes a mantener
+SISTEMA M-H-C-R (para cada ejercicio): Mostrar → Hacer → Corregir → Re-hacer.
 
-Responde SOLO con JSON válido sin texto adicional:
+CORRECCIONES (por orden): Visual → Verbal → Táctil (solo si no hay otra opción).
+
+PRE-CLASE: Móvil fuera, conexión con atletas, lesson plan preparado, variantes definidas.
+
+NUNCA: Reírse de alguien, humor negro, hacer sentir vergüenza, debates de política/religión/fútbol, brazos cruzados, manos en bolsillos, mirar el suelo.
+
+COMUNICACIÓN: Tono adecuado, vocabulario neutro, explicaciones simples como para niños de 5 años, preguntar dudas al terminar.
+
+DEMOS: En silencio, para resolver dudas no para lucirse.
+
+Eres un evaluador experto de coaches de CrossFit Lambda. Tu tarea es extraer datos de esta hoja de feedback con criterios OBJETIVOS Y FIJOS. No interpretes — lee y clasifica.
+
+REGLAS ESTRICTAS:
+- Si ves un checkmark (✓) en un ítem = ese ítem está cumplido
+- Si ves una X o está vacío = no cumplido
+- Si ves una puntuación numérica 1-5, multiplica x2 para escala 10
+- Si ves 1-10 directamente, úsala tal cual
+- Si un campo está completamente vacío = 5 (neutro)
+- NO inventes ni supongas — solo lee lo que está escrito
+
+SISTEMA DE PUNTUACIÓN FIJO (0-10):
+Cada eje tiene ítems específicos. Cuenta los cumplidos y calcula:
+(ítems cumplidos / total ítems) x 10, redondeado a 1 decimal.
+
+EJE 1 - PRESENCIA FÍSICA — Valor Lambda: Profesionalismo, Energía (ítems: llega a tiempo, material listo, no usa móvil, tiene energía positiva, tiene lesson plan)
+EJE 2 - CLARIDAD BRIEFING — Valor Lambda: Comunicación Efectiva, Conocimiento (ítems: duración correcta, demo hecha, suficiente información, preguntas & respuestas, logística briefing)
+EJE 3 - CORRECCIONES — Sistema VVT + M-H-C-R de Lambda (ítems: identifica errores graves, identifica errores sutiles, usa señales claras, múltiples formas corrección, lenguaje equilibrado)
+EJE 4 - CONEXIÓN ATLETA — Valor Lambda: Empatía, Comunidad (ítems: usa nombre atletas, atención personalizada, conecta con atletas, pasa lista)
+EJE 5 - GESTIÓN TIEMPO — Valor Lambda: Responsabilidad, Control Tiempo (ítems: clase termina a tiempo, transiciones fluidas, zona apta al finalizar, lleva atletas calma)
+EJE 6 - MOTIVACIÓN — Valor Lambda: Pasión, Motivación, Sistema C-C-C punto 1 (ítems: energía positiva, camaradería, música volumen correcto, tono y energía evaluación)
+EJE 7 - ADAPTACIÓN — Valor Lambda: Adaptabilidad, Seguridad (ítems: escalado en briefing, escalado en skill, escalado en wod, gestión lesiones)
+EJE 8 - CONOCIMIENTO TEC. — Valor Lambda: Conocimiento, Sistema C-C-C punto 2 (ítems: demo técnica sólida briefing, demo técnica skill, progresión correcta, conocimiento movimiento)
+EJE 9 - GESTIÓN EMOCIONAL — Valor Lambda: Humildad, Empatía, Sistema C-C-C punto 1 (ítems: respeto y empatía, ambiente cooperación, modula según atletas, evaluación ánimo atletas)
+EJE 10 - FEEDBACK POST — Sistema 15min Lambda, objetivos C-C-C (ítems: puntos fuertes identificados, áreas mejora identificadas, objetivos próxima semana definidos)
+
+Además extrae:
+- NOMBRE del coach (campo "COACH:")
+- FECHA de la sesión
+- EVALUADOR (campo "FEEDBACK POR:")
+- NOTAS textuales escritas en los campos de notas
+
+Para las áreas de mejora, identifica los 3 ejes con puntuación más baja y sugiere 2 acciones ESPECÍFICAS basadas en los ítems NO cumplidos de ese eje, SIEMPRE alineadas con los valores y metodología Lambda (C-C-C, M-H-C-R, correcciones VVT, vocabulario neutro, no juzgar).
+
+Responde SOLO con este JSON exacto, sin texto adicional:
 {
-  "nombre":"",
-  "fecha":"",
-  "evaluador":"",
-  "notas":"resumen ejecutivo del feedback en 2-3 frases",
-  "puntuaciones":[7,6,8,7,8,9,7,8,8,6],
-  "puntos_fuertes":["punto fuerte 1","punto fuerte 2","punto fuerte 3"],
-  "areas_mejora":[
-    {"eje":"nombre del eje","puntuacion":5,"acciones":["acción concreta 1","acción concreta 2"]},
-    {"eje":"nombre del eje","puntuacion":4,"acciones":["acción concreta 1","acción concreta 2"]},
-    {"eje":"nombre del eje","puntuacion":6,"acciones":["acción concreta 1","acción concreta 2"]}
+  "nombre": "",
+  "fecha": "",
+  "evaluador": "",
+  "notas": "",
+  "puntuaciones": [0,0,0,0,0,0,0,0,0,0],
+  "puntos_fuertes": ["","",""],
+  "areas_mejora": [
+    {"eje": "", "puntuacion": 0, "acciones": ["",""]},
+    {"eje": "", "puntuacion": 0, "acciones": ["",""]},
+    {"eje": "", "puntuacion": 0, "acciones": [",""]}
   ],
-  "objetivo_siguiente":"objetivo principal medible para el próximo feedback"
+  "objetivo_siguiente": ""
 }`;
 
       const contentBlock = isPDF
