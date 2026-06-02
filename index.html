@@ -1058,7 +1058,8 @@ input[type=range].sl-input::-webkit-slider-thumb{appearance:none;width:14px;heig
           <button class="btn" style="width:100%;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.3);color:#fff;font-size:11px;padding:8px" onclick="document.getElementById('feedback-photo-input').click()">SUBIR FOTO O PDF DE LA HOJA</button>
           <input type="file" id="feedback-photo-input" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="analizarFotoFeedback(event)">
           <div id="feedback-status" style="font-size:9px;margin-top:6px;min-height:14px;text-align:center"></div>
-          <div style="font-size:8px;color:var(--w5);margin-top:5px;text-align:center">Claude lee la hoja y rellena el formulario y el diagrama automáticamente</div>
+          <div style="font-size:8px;color:var(--w5);margin-top:5px;text-align:center">La IA lee la hoja, rellena el formulario, genera el diagrama y propone objetivos</div>
+          <div id="feedback-analysis" style="display:none;margin-top:12px;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.02)"></div>
         </div>
         <div class="frow2"><div class="field"><label>Fecha</label><input type="date" id="c-fecha"></div><div class="field"><label>Nivel actual</label><select id="c-nivel"><option value="Bronze">Bronze</option><option value="Silver">Silver</option><option value="Gold">Gold</option><option value="Diamond">Diamond</option></select></div></div>
         <div class="field"><label>Notas</label><textarea id="c-notas" placeholder="Observaciones…"></textarea></div>
@@ -2559,7 +2560,7 @@ async function analizarFotoFeedback(event){
     const mediaType = file.type || 'image/jpeg';
     const isPDF = mediaType === 'application/pdf';
     try {
-      const prompt = `Analiza esta hoja de feedback de un coach de CrossFit Lambda y extrae los datos.
+      const prompt = `Eres un experto evaluador de coaches de CrossFit. Analiza esta hoja de feedback y extrae los datos con precisión.
 
 Los 10 ejes del diagrama araña son:
 1. PRESENCIA FÍSICA (actitud, energía, puntualidad, material listo, no usa móvil)
@@ -2576,8 +2577,26 @@ Los 10 ejes del diagrama araña son:
 Para cada eje busca: checkmarks (✓), puntuaciones 1-5 (multiplica x2), puntuaciones 1-10, o infiere por el contenido escrito.
 Si no hay dato claro usa 5 como neutro.
 
+Después de analizar las puntuaciones, identifica los 3 ejes con puntuación más baja y genera:
+- Para cada eje bajo: 2-3 acciones concretas y específicas que el coach puede hacer en la próxima sesión para mejorar
+- Un objetivo principal para el siguiente feedback
+- Los 3 puntos fuertes a mantener
+
 Responde SOLO con JSON válido sin texto adicional:
-{"nombre":"","fecha":"","evaluador":"","notas":"resumen puntos clave","puntuaciones":[7,6,8,7,8,9,7,8,8,6]}`;
+{
+  "nombre":"",
+  "fecha":"",
+  "evaluador":"",
+  "notas":"resumen ejecutivo del feedback en 2-3 frases",
+  "puntuaciones":[7,6,8,7,8,9,7,8,8,6],
+  "puntos_fuertes":["punto fuerte 1","punto fuerte 2","punto fuerte 3"],
+  "areas_mejora":[
+    {"eje":"nombre del eje","puntuacion":5,"acciones":["acción concreta 1","acción concreta 2"]},
+    {"eje":"nombre del eje","puntuacion":4,"acciones":["acción concreta 1","acción concreta 2"]},
+    {"eje":"nombre del eje","puntuacion":6,"acciones":["acción concreta 1","acción concreta 2"]}
+  ],
+  "objetivo_siguiente":"objetivo principal medible para el próximo feedback"
+}`;
 
       const contentBlock = isPDF
         ? {type:'document', source:{type:'base64', media_type:'application/pdf', data:base64}}
@@ -2616,7 +2635,31 @@ Responde SOLO con JSON válido sin texto adicional:
         buildSliders('coaches');
         spiderRedraw('coaches');
       }
-      statusEl.textContent = '✓ Hoja analizada correctamente';
+      // Show AI analysis results
+      const analysisEl = document.getElementById('feedback-analysis');
+      if(analysisEl){
+        let html = '';
+        if(result.puntos_fuertes && result.puntos_fuertes.length){
+          html += '<div style="margin-bottom:10px"><div style="font-size:8px;color:#2ecc71;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px">✓ Puntos fuertes</div>';
+          result.puntos_fuertes.forEach(p => { html += '<div style="font-size:10px;color:#aaa;padding:2px 0">· '+p+'</div>'; });
+          html += '</div>';
+        }
+        if(result.areas_mejora && result.areas_mejora.length){
+          html += '<div style="margin-bottom:10px"><div style="font-size:8px;color:#e63946;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px">↑ Áreas de mejora</div>';
+          result.areas_mejora.forEach(a => {
+            html += '<div style="margin-bottom:6px"><div style="font-size:10px;color:#fff;font-weight:700">'+a.eje+' ('+a.puntuacion+'/10)</div>';
+            (a.acciones||[]).forEach(ac => { html += '<div style="font-size:9px;color:#aaa;padding:1px 0 1px 8px">→ '+ac+'</div>'; });
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+        if(result.objetivo_siguiente){
+          html += '<div style="padding:8px;border:1px solid rgba(255,215,0,.3);border-radius:6px;background:rgba(255,215,0,.05)"><div style="font-size:8px;color:#FFD700;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">🎯 Objetivo siguiente feedback</div><div style="font-size:10px;color:#fff">'+result.objetivo_siguiente+'</div></div>';
+        }
+        analysisEl.innerHTML = html;
+        analysisEl.style.display = html ? 'block' : 'none';
+      }
+      statusEl.textContent = '✓ Análisis completado';
       statusEl.style.color = '#2ecc71';
       setTimeout(()=>{statusEl.textContent='';},4000);
     } catch(err){
