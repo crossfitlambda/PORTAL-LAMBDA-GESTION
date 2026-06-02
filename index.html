@@ -2631,8 +2631,19 @@ Responde SOLO con JSON válido sin texto adicional:
       if(result.notas)     {const el=document.getElementById('c-notas'); if(el)el.value=result.notas;}
       // Set values and rebuild sliders
       if(result.puntuaciones && result.puntuaciones.length===10){
-        MED.coaches.vals = result.puntuaciones.map(v=>Math.min(10,Math.max(0,parseFloat(v)||5)));
+        const vals = result.puntuaciones.map(v=>Math.min(10,Math.max(0,parseFloat(v)||5)));
+        MED.coaches.vals = vals;
+        // Force rebuild sliders with new values
         buildSliders('coaches');
+        // Force update each slider input value too
+        vals.forEach((v,i)=>{
+          const inp = document.querySelectorAll('#c-sliders .sl-input')[i];
+          if(inp) inp.value = v;
+          const valEl = document.getElementById('c-val-'+i);
+          if(valEl) valEl.textContent = v.toFixed(1).replace('.0','');
+          const bcEl = document.getElementById('c-bc-'+i);
+          if(bcEl) bcEl.style.width = (v*10)+'%';
+        });
         spiderRedraw('coaches');
       }
       // Show AI analysis results
